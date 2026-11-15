@@ -1,200 +1,334 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, CheckCircle2, FileText, PencilLine, Printer, Sparkles, Target } from 'lucide-react'
 import { loadCases, saveCases } from '../services/storage'
-import { TransitionCase, CurriculumComparison } from '../types'
-import { curricula } from '../data/curricula'
 import { compareCurricula, generateTransitionPlan } from '../services/agents'
+import { curricula } from '../data/curricula'
+import { CurriculumComparison, TransitionCase } from '../types'
 
-export default function StudentView(){
+export default function StudentView() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [caseData, setCaseData] = useState<TransitionCase | null>(null)
   const [comparisons, setComparisons] = useState<CurriculumComparison[] | null>(null)
   const [editingPlan, setEditingPlan] = useState(false)
 
-  useEffect(()=>{
+  useEffect(() => {
     const cases = loadCases()
-    const found = cases.find(c=>c.id === id)
-    if(!found) return navigate('/students')
+    const found = cases.find((item) => item.id === id)
+    if (!found) return navigate('/students')
     setCaseData(found)
-  },[id])
+  }, [id, navigate])
 
-  useEffect(()=>{
-    if(!caseData) return
+  useEffect(() => {
+    if (!caseData) return
     setComparisons(compareCurricula(caseData))
-  },[caseData])
+  }, [caseData])
 
-  function generatePlan(){
-    if(!caseData || !comparisons) return
-    const plan = generateTransitionPlan(caseData, comparisons)
-    const updated = { ...caseData, plan, status: 'under_review' as any }
-    updateCase(updated)
-  }
-
-  function updateCase(next: TransitionCase){
+  function updateCase(next: TransitionCase) {
     const all = loadCases()
-    const rest = all.filter(c=>c.id!==next.id)
-    const combined = [next, ...rest]
-    saveCases(combined)
+    const remaining = all.filter((item) => item.id !== next.id)
+    saveCases([next, ...remaining])
     setCaseData(next)
   }
 
-  function approvePlan(){
-    if(!caseData || !caseData.plan) return
-    const updated = { ...caseData, status: 'approved', plan: { ...caseData.plan, approved: true } }
+  function generatePlan() {
+    if (!caseData || !comparisons) return
+    const plan = generateTransitionPlan(caseData, comparisons)
+    const updated = { ...caseData, status: 'under_review' as const, plan }
+    updateCase(updated)
+  }
+
+  function approvePlan() {
+    if (!caseData || !caseData.plan) return
+    const updated = {
+      ...caseData,
+      status: 'approved' as const,
+      plan: { ...caseData.plan, approved: true },
+    }
     updateCase(updated)
     setEditingPlan(false)
   }
 
-  function updateWeek(weekNum: number, objectives: string[], activities: string[]){
-    if(!caseData?.plan) return
-    const updated = { ...caseData, plan: { ...caseData.plan, weeks: caseData.plan.weeks.map(w=> w.week===weekNum ? {...w, objectives, activities} : w) } }
-    updateCase(updated)
+  function updateWeek(
+    weekNum: number,
+    field: 'objectives' | 'activities' | 'resources' | 'assessment' | 'expectedOutcome',
+    value: string[]
+  ) {
+    if (!caseData?.plan) return
+    const updatedWeeks = caseData.plan.weeks.map((week) => {
+      if (week.week !== weekNum) return week
+      return { ...week, [field]: value }
+    })
+    updateCase({ ...caseData, plan: { ...caseData.plan, weeks: updatedWeeks } })
   }
 
-  if(!caseData) return <div>Loading...</div>
+  if (!caseData) {
+    return (
+      <div className="page">
+        <div className="section-card card-body">Loading student record...</div>
+      </div>
+    )
+  }
 
-  const sourceCurr = curricula.find(c=>c.id===caseData.sourceCurriculumId)
-  const destCurr = curricula.find(c=>c.id===caseData.destinationCurriculumId)
+  const sourceCurr = curricula.find((item) => item.id === caseData.sourceCurriculumId)
+  const destCurr = curricula.find((item) => item.id === caseData.destinationCurriculumId)
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="page">
+      <header className="page-header">
         <div>
-          <h1 className="text-2xl font-bold">{caseData.studentName}</h1>
-          <div className="text-sm text-muted">{caseData.sourceState} → {caseData.destinationState} • Class {caseData.currentClass}</div>
+          <div className="page-kicker">Student workspace</div>
+          <h1 className="page-title">{caseData.studentName}</h1>
+          <div className="inline-note">{caseData.sourceState} → {caseData.destinationState} • Class {caseData.currentClass}</div>
         </div>
-        <div className="flex gap-2">
-          <Link to="/students" className="px-3 py-2 border rounded">Back</Link>
-          {!caseData.plan && <button className="px-3 py-2 bg-teal-500 text-white rounded" onClick={()=>generatePlan()}>Generate 4-week plan</button>}
-          {caseData.plan && !caseData.plan.approved && <button className="px-3 py-2 bg-[#f2a900] text-white rounded" onClick={()=>approvePlan()}>Approve plan</button>}
-          {caseData.plan && <button className="px-3 py-2 bg-gray-500 text-white rounded" onClick={()=>window.print()}>Print</button>}
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded shadow">
-          <h2 className="font-semibold">Academic record from {caseData.sourceState}</h2>
-          {caseData.academicRecords.map(rec=> (
-            <div key={rec.subject} className="mt-3 border-t pt-3">
-              <h3 className="font-medium">{rec.subject}</h3>
-              <div className="text-sm text-muted mt-1">Completed topics:</div>
-              <ul className="mt-2 list-disc ml-6 text-sm">
-                {rec.completedTopicIds.length>0 ? rec.completedTopicIds.map(t=> <li key={t}>{t}</li>) : <li className="text-gray-400">None provided</li>}
-              </ul>
-              {rec.observations && <div className="text-sm mt-2">Observations: <span className="text-muted">{rec.observations}</span></div>}
-            </div>
-          ))}
-        </div>
-
-        <div className="bg-white p-4 rounded shadow">
-          <h2 className="font-semibold">Evidence provided</h2>
-          {caseData.evidence.length>0 ? (
-            <ul className="mt-3 space-y-2">
-              {caseData.evidence.map((e,i)=> (
-                <div key={i} className="border-l-2 border-teal-500 pl-3 text-sm">
-                  <div className="font-medium">{e.subject} — {e.topicId}</div>
-                  <div className="text-muted">{e.evidenceType}</div>
-                  {e.note && <div className="text-xs mt-1">{e.note}</div>}
-                </div>
-              ))}
-            </ul>
-          ) : (
-            <div className="mt-3 text-sm text-gray-400">No evidence provided yet.</div>
+        <div className="cta-row">
+          <Link to="/students" className="btn btn-ghost">
+            <ArrowLeft size={16} />
+            Back
+          </Link>
+          {!caseData.plan && (
+            <button className="btn btn-primary" onClick={generatePlan}>
+              <Target size={16} />
+              Generate 4-week plan
+            </button>
+          )}
+          {caseData.plan && !caseData.plan.approved && (
+            <button className="btn btn-warm" onClick={approvePlan}>
+              <CheckCircle2 size={16} />
+              Approve plan
+            </button>
+          )}
+          {caseData.plan && (
+            <button className="btn btn-secondary" onClick={() => window.print()}>
+              <Printer size={16} />
+              Print
+            </button>
           )}
         </div>
+      </header>
+
+      <div className="risk-grid" style={{ marginBottom: '1.5rem' }}>
+        <section className="section-card card-body">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <FileText size={18} color="#0a8f8d" />
+            <h2 className="section-title">Student overview</h2>
+          </div>
+
+          <div className="form-grid">
+            <div className="list-card">
+              <div className="inline-note">Source curriculum</div>
+              <div style={{ fontWeight: 700 }}>{sourceCurr?.title ?? 'Unknown source'}</div>
+            </div>
+            <div className="list-card">
+              <div className="inline-note">Destination curriculum</div>
+              <div style={{ fontWeight: 700 }}>{destCurr?.title ?? 'Unknown destination'}</div>
+            </div>
+            <div className="list-card">
+              <div className="inline-note">Previous language</div>
+              <div style={{ fontWeight: 700 }}>{caseData.previousLanguage}</div>
+            </div>
+            <div className="list-card">
+              <div className="inline-note">Preferred language</div>
+              <div style={{ fontWeight: 700 }}>{caseData.preferredLanguage}</div>
+            </div>
+          </div>
+        </section>
+
+        <section className="section-card card-body">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <Sparkles size={18} color="#0a8f8d" />
+            <h2 className="section-title">Progress across workflow</h2>
+          </div>
+          <div className="timeline">
+            <div className="timeline-step">
+              <div style={{ fontWeight: 700 }}>Basic details</div>
+              <div className="inline-note">Completed for {caseData.studentName}</div>
+            </div>
+            <div className="timeline-step">
+              <div style={{ fontWeight: 700 }}>Curriculum match</div>
+              <div className="inline-note">{sourceCurr?.title} → {destCurr?.title}</div>
+            </div>
+            <div className="timeline-step">
+              <div style={{ fontWeight: 700 }}>Academic evidence</div>
+              <div className="inline-note">{caseData.evidence.length} evidence entries recorded</div>
+            </div>
+            <div className="timeline-step">
+              <div style={{ fontWeight: 700 }}>Learning plan</div>
+              <div className="inline-note">{caseData.plan ? 'Generated and ready for review' : 'Not generated yet'}</div>
+            </div>
+          </div>
+        </section>
       </div>
 
-      <div className="bg-white p-4 rounded shadow">
-        <h2 className="font-semibold">Curriculum comparison</h2>
-        {comparisons && comparisons.length>0 ? (
-          comparisons.map(comp=> (
-            <div key={comp.subject} className="mt-4 border-t pt-3">
-              <h3 className="font-medium">{comp.subject}</h3>
-              <div className="grid md:grid-cols-3 gap-3 mt-2">
-                <div>
-                  <h4 className="text-sm font-semibold text-green-700">Supported ({comp.confirmed.length})</h4>
-                  <ul className="mt-2 list-disc ml-4 text-sm">
-                    {comp.confirmed.length>0 ? comp.confirmed.map(m=> <li key={m.topic.id}>{m.topic.title}</li>) : <li className="text-gray-400">—</li>}
-                  </ul>
+      <div className="risk-grid" style={{ marginBottom: '1.5rem' }}>
+        <section className="section-card card-body">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <Target size={18} color="#0a8f8d" />
+            <h2 className="section-title">Academic evidence</h2>
+          </div>
+          {caseData.academicRecords.length === 0 ? (
+            <div className="empty-state">No academic record has been added yet.</div>
+          ) : (
+            <div className="timeline">
+              {caseData.academicRecords.map((record) => (
+                <div key={record.subject} className="timeline-step">
+                  <div style={{ fontWeight: 700 }}>{record.subject}</div>
+                  <div className="inline-note">Completed topics: {record.completedTopicIds.length ? record.completedTopicIds.join(', ') : 'No topic list recorded'}</div>
+                  {record.observations && <div className="inline-note" style={{ marginTop: '0.35rem' }}>{record.observations}</div>}
                 </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-yellow-700">Possible gap ({comp.possible.length})</h4>
-                  <ul className="mt-2 list-disc ml-4 text-sm">
-                    {comp.possible.length>0 ? comp.possible.map(m=> <li key={m.topic.id}>{m.topic.title}</li>) : <li className="text-gray-400">—</li>}
-                  </ul>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="section-card card-body">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <PencilLine size={18} color="#0a8f8d" />
+            <h2 className="section-title">Evidence log</h2>
+          </div>
+          {caseData.evidence.length === 0 ? (
+            <div className="empty-state">No evidence has been added for this student yet.</div>
+          ) : (
+            <div className="timeline">
+              {caseData.evidence.map((entry, index) => (
+                <div key={`${entry.subject}-${entry.topicId}-${index}`} className="timeline-step">
+                  <div style={{ fontWeight: 700 }}>{entry.subject}</div>
+                  <div className="inline-note">{entry.topicId} • {entry.evidenceType}</div>
+                  {entry.note && <div className="inline-note" style={{ marginTop: '0.35rem' }}>{entry.note}</div>}
                 </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-red-700">Unknown ({comp.unknown.length})</h4>
-                  <ul className="mt-2 list-disc ml-4 text-sm">
-                    {comp.unknown.length>0 ? comp.unknown.map(m=> <li key={m.topic.id}>{m.topic.title}</li>) : <li className="text-gray-400">—</li>}
-                  </ul>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+
+      <section className="section-card card-body" style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+          <Sparkles size={18} color="#0a8f8d" />
+          <h2 className="section-title">Curriculum comparison</h2>
+        </div>
+        {comparisons && comparisons.length > 0 ? (
+          <div className="timeline">
+            {comparisons.map((comparison) => (
+              <div key={comparison.subject} className="timeline-step">
+                <div style={{ fontWeight: 700 }}>{comparison.subject}</div>
+                <div className="form-grid" style={{ marginTop: '0.8rem' }}>
+                  <div>
+                    <div className="inline-note" style={{ color: '#087f5b', fontWeight: 700 }}>Evidence-supported</div>
+                    {comparison.confirmed.length > 0 ? comparison.confirmed.map((match) => (
+                      <div key={match.topic.id} className="list-card" style={{ marginTop: '0.5rem' }}>
+                        <div style={{ fontWeight: 700 }}>{match.topic.title}</div>
+                        <div className="inline-note">{match.explanation}</div>
+                      </div>
+                    )) : <div className="inline-note" style={{ marginTop: '0.5rem' }}>No confirmed topics for this subject.</div>}
+                  </div>
+                  <div>
+                    <div className="inline-note" style={{ color: '#b45309', fontWeight: 700 }}>Potential learning gap</div>
+                    {comparison.possible.length > 0 ? comparison.possible.map((match) => (
+                      <div key={match.topic.id} className="list-card" style={{ marginTop: '0.5rem' }}>
+                        <div style={{ fontWeight: 700 }}>{match.topic.title}</div>
+                        <div className="inline-note">{match.explanation}</div>
+                      </div>
+                    )) : <div className="inline-note" style={{ marginTop: '0.5rem' }}>No likely gaps identified.</div>}
+                  </div>
+                  <div>
+                    <div className="inline-note" style={{ color: '#b42318', fontWeight: 700 }}>Not assessed / Unknown</div>
+                    {comparison.unknown.length > 0 ? comparison.unknown.map((match) => (
+                      <div key={match.topic.id} className="list-card" style={{ marginTop: '0.5rem' }}>
+                        <div style={{ fontWeight: 700 }}>{match.topic.title}</div>
+                        <div className="inline-note">{match.explanation}</div>
+                      </div>
+                    )) : <div className="inline-note" style={{ marginTop: '0.5rem' }}>No unknown topics flagged.</div>}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
-        ) : <div className="text-sm text-gray-400">Comparing curricula...</div>}
-      </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">Comparing curricula...</div>
+        )}
+      </section>
 
       {caseData.plan && (
-        <div className="bg-white p-4 rounded shadow">
-          <div className="flex justify-between items-center">
+        <section className="section-card card-body">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
             <div>
-              <h2 className="font-semibold">4-week transition plan</h2>
-              <div className="text-xs text-muted mt-1">{caseData.plan.approved ? 'APPROVED' : 'DRAFT'}</div>
+              <div className="page-kicker" style={{ marginBottom: '0.35rem' }}>Bridge plan</div>
+              <h2 className="section-title">Four-week learning bridge</h2>
             </div>
-            {!caseData.plan.approved && <button className="text-sm text-teal-600" onClick={()=>setEditingPlan(!editingPlan)}>Edit</button>}
+            {!caseData.plan.approved && (
+              <button className="btn btn-ghost" onClick={() => setEditingPlan(!editingPlan)}>
+                <PencilLine size={15} />
+                {editingPlan ? 'Close edit' : 'Edit plan'}
+              </button>
+            )}
           </div>
-          <div className="mt-2 text-xs text-gray-500">Language: {caseData.plan.languageAdaptationNotes}</div>
 
-          <div className="space-y-3 mt-4">
-            {caseData.plan.weeks.map(w=> (
-              <div key={w.week} className="border p-3 rounded bg-ivory">
-                <div className="font-semibold">Week {w.week}</div>
+          <div className="inline-note" style={{ marginTop: '0.7rem' }}>{caseData.plan.languageAdaptationNotes}</div>
+
+          <div style={{ marginTop: '1rem', display: 'grid', gap: '0.9rem' }}>
+            {caseData.plan.weeks.map((week) => (
+              <div key={week.week} className="list-card">
+                <div style={{ fontWeight: 800, marginBottom: '0.65rem' }}>Week {week.week}</div>
                 {editingPlan ? (
-                  <div className="mt-2 space-y-2">
+                  <div className="form-grid">
                     <div>
-                      <label className="text-sm">Objectives</label>
-                      <textarea className="w-full border p-2 text-sm" value={w.objectives.join('\n')} onChange={e=>updateWeek(w.week, e.target.value.split('\n'), w.activities)} />
+                      <label className="label">Objectives</label>
+                      <textarea className="textarea" rows={4} value={week.objectives.join('\n')} onChange={(event) => updateWeek(week.week, 'objectives', event.target.value.split('\n'))} />
                     </div>
                     <div>
-                      <label className="text-sm">Activities</label>
-                      <textarea className="w-full border p-2 text-sm" value={w.activities.join('\n')} onChange={e=>updateWeek(w.week, w.objectives, e.target.value.split('\n'))} />
+                      <label className="label">Activities</label>
+                      <textarea className="textarea" rows={4} value={week.activities.join('\n')} onChange={(event) => updateWeek(week.week, 'activities', event.target.value.split('\n'))} />
+                    </div>
+                    <div>
+                      <label className="label">Resources</label>
+                      <textarea className="textarea" rows={4} value={week.resources.join('\n')} onChange={(event) => updateWeek(week.week, 'resources', event.target.value.split('\n'))} />
+                    </div>
+                    <div>
+                      <label className="label">Assessment</label>
+                      <textarea className="textarea" rows={4} value={week.assessment} onChange={(event) => updateWeek(week.week, 'assessment', [event.target.value])} />
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label className="label">Expected outcome</label>
+                      <textarea className="textarea" rows={3} value={week.expectedOutcome} onChange={(event) => updateWeek(week.week, 'expectedOutcome', [event.target.value])} />
                     </div>
                   </div>
                 ) : (
-                  <>
-                    <div className="text-sm mt-2">
-                      <div className="font-medium">Objectives:</div>
-                      <ul className="list-disc ml-4">{w.objectives.map(o=> <li key={o} className="text-xs">{o}</li>)}</ul>
+                  <div className="form-grid">
+                    <div>
+                      <div className="inline-note" style={{ fontWeight: 700, color: '#0b2545' }}>Objectives</div>
+                      <ul style={{ paddingLeft: '1.1rem', marginTop: '0.45rem' }}>
+                        {week.objectives.map((objective) => <li key={objective}>{objective}</li>)}
+                      </ul>
                     </div>
-                    <div className="text-sm mt-2">
-                      <div className="font-medium">Activities:</div>
-                      <ul className="list-disc ml-4">{w.activities.map(a=> <li key={a} className="text-xs">{a}</li>)}</ul>
+                    <div>
+                      <div className="inline-note" style={{ fontWeight: 700, color: '#0b2545' }}>Activities</div>
+                      <ul style={{ paddingLeft: '1.1rem', marginTop: '0.45rem' }}>
+                        {week.activities.map((activity) => <li key={activity}>{activity}</li>)}
+                      </ul>
                     </div>
-                    <div className="text-xs mt-1">Assessment: {w.assessment}</div>
-                  </>
+                    <div>
+                      <div className="inline-note" style={{ fontWeight: 700, color: '#0b2545' }}>Resources</div>
+                      <ul style={{ paddingLeft: '1.1rem', marginTop: '0.45rem' }}>
+                        {week.resources.map((resource) => <li key={resource}>{resource}</li>)}
+                      </ul>
+                    </div>
+                    <div>
+                      <div className="inline-note" style={{ fontWeight: 700, color: '#0b2545' }}>Assessment</div>
+                      <div style={{ marginTop: '0.45rem' }}>{week.assessment}</div>
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <div className="inline-note" style={{ fontWeight: 700, color: '#0b2545' }}>Expected outcome</div>
+                      <div style={{ marginTop: '0.45rem' }}>{week.expectedOutcome}</div>
+                    </div>
+                  </div>
                 )}
               </div>
             ))}
           </div>
-
-          {!caseData.plan.approved && (
-            <div className="mt-4">
-              <label className="block text-sm">Teacher comments</label>
-              <textarea className="w-full border p-2 mt-1 text-sm" value={caseData.plan.teacherComments} onChange={e=>{
-                const updated = { ...caseData, plan: { ...caseData.plan!, teacherComments: e.target.value } }
-                updateCase(updated)
-              }} />
-              <div className="mt-3 flex gap-2">
-                <button className="px-3 py-2 bg-teal-500 text-white rounded" onClick={()=>approvePlan()}>Approve</button>
-                <button className="px-3 py-2 bg-gray-500 text-white rounded" onClick={()=>window.print()}>Print / Export</button>
-              </div>
-            </div>
-          )}
-        </div>
+        </section>
       )}
-
     </div>
   )
 }

@@ -1,83 +1,142 @@
 import { CurriculumComparison, TransitionCase } from '../types'
 import { curricula } from '../data/curricula'
 
-// Deterministic demo-mode agents
+const subjectOrder = ['Mathematics', 'Science'] as const
 
-export function compareCurricula(caseData: TransitionCase): CurriculumComparison[]{
-  const source = curricula.find(c=>c.id === caseData.sourceCurriculumId)
-  const dest = curricula.find(c=>c.id === caseData.destinationCurriculumId)
-  if(!source || !dest) return []
+export function compareCurricula(caseData: TransitionCase): CurriculumComparison[] {
+  const source = curricula.find((c) => c.id === caseData.sourceCurriculumId)
+  const dest = curricula.find((c) => c.id === caseData.destinationCurriculumId)
+  if (!source || !dest) return []
 
-  const result: CurriculumComparison[] = []
+  return subjectOrder.map((subject) => {
+    const destinationTopics = dest.subjects[subject] ?? []
+    const sourceTopics = source.subjects[subject] ?? []
+    const confirmed: any[] = []
+    const possible: any[] = []
+    const unknown: any[] = []
 
-  ;(Object.keys(dest.subjects) as Array<any>).forEach((subject)=>{
-    const destTopics = dest.subjects[subject]
-    const sourceTopics = source.subjects[subject] || []
+    destinationTopics.forEach((topic) => {
+      const sourceMatch = sourceTopics.find((sourceTopic) => sourceTopic.id === topic.id)
+      const evidence = caseData.evidence.filter((entry) => entry.subject === subject && entry.topicId === topic.id)
+      const evidenceReference = evidence.length
+        ? evidence.map((entry) => `${entry.evidenceType}: ${entry.note || 'No note recorded'}`).join(' • ')
+        : 'No direct evidence recorded'
 
-    const confirmed = [] as any[]
-    const possible = [] as any[]
-    const unknown = [] as any[]
-
-    destTopics.forEach(dt=>{
-      const matched = sourceTopics.find(st=>st.id === dt.id)
-      const evidence = caseData.evidence.filter(e=>e.subject === subject && e.topicId === dt.id)
-      if(matched && evidence.length>0){
-        confirmed.push({ topic: dt, evidenceFor: evidence, status: 'confirmed' })
-      }else if(matched){
-        possible.push({ topic: dt, evidenceFor: [], status: 'possible' })
-      }else{
-        unknown.push({ topic: dt, evidenceFor: [], status: 'unknown' })
+      if (sourceMatch && evidence.length > 0) {
+        confirmed.push({
+          topic,
+          evidenceFor: evidence,
+          status: 'confirmed',
+          explanation: `This topic is taught in the source curriculum and supported by recorded classroom evidence for ${caseData.studentName}.`,
+          evidenceReference,
+          teacherReviewRequired: false,
+        })
+      } else if (sourceMatch) {
+        possible.push({
+          topic,
+          evidenceFor: evidence,
+          status: 'possible',
+          explanation: `The topic appears in the source curriculum, but evidence is limited or missing, so it should be checked before assuming mastery.`,
+          evidenceReference,
+          teacherReviewRequired: true,
+        })
+      } else {
+        unknown.push({
+          topic,
+          evidenceFor: evidence,
+          status: 'unknown',
+          explanation: `This destination topic is not directly matched to the source curriculum and should be treated as a potential learning gap unless teacher review confirms prior learning.`,
+          evidenceReference,
+          teacherReviewRequired: true,
+        })
       }
     })
 
-    result.push({ subject, confirmed, possible, unknown })
+    return { subject, confirmed, possible, unknown }
   })
-
-  return result
 }
 
-export function generateTransitionPlan(caseData: TransitionCase, comparisons: CurriculumComparison[]){
-  // Build a focused 4-week plan using unknown/possible topics. Use evidence to create objectives and activities.
-  const topics: any[] = []
-  comparisons.forEach(comp=>{
-    comp.possible.forEach(p=>topics.push({ ...p.topic, status: 'possible', subject: comp.subject }))
-    comp.unknown.forEach(u=>topics.push({ ...u.topic, status: 'unknown', subject: comp.subject }))
+export function generateTransitionPlan(caseData: TransitionCase, comparisons: CurriculumComparison[]) {
+  const allTopics: Array<{ id: string; title: string; subject: string; status: 'unknown' | 'possible' }> = []
+
+  comparisons.forEach((comparison) => {
+    comparison.unknown.forEach((item) => allTopics.push({ id: item.topic.id, title: item.topic.title, subject: comparison.subject, status: 'unknown' }))
+    comparison.possible.forEach((item) => allTopics.push({ id: item.topic.id, title: item.topic.title, subject: comparison.subject, status: 'possible' }))
   })
 
-  // Deduplicate
-  const byId: Record<string, any> = {}
-  topics.forEach(t=>byId[t.id] = t)
-  const unique = Object.values(byId)
+  const deduped = Object.values(
+    allTopics.reduce<Record<string, { id: string; title: string; subject: string; status: 'unknown' | 'possible' }>>((acc, topic) => {
+      acc[topic.id] = acc[topic.id] ?? topic
+      return acc
+    }, {})
+  )
 
-  // Sort unknown first
-  unique.sort((a,b)=> (a.status==='unknown'? -1:1))
+  const prioritized = deduped.sort((a, b) => {
+    if (a.status === b.status) return a.subject.localeCompare(b.subject)
+    return a.status === 'unknown' ? -1 : 1
+  })
 
-  // Ensure up to 8 priority topics
-  const priority = unique.slice(0,8)
+  const fallbackWeeks = [
+    'Baseline listening, reading and numeracy checks to establish the start point.',
+    'Targeted bridge work on priority vocabulary and core concepts.',
+    'Guided practice with repetition, examples and peer correction.',
+    'Review and consolidation with a simple exit assessment and next-step notes.'
+  ]
 
-  const weeks = [] as any[]
-  const perWeek = Math.max(1, Math.ceil(priority.length/4))
+  const weekTopics = [prioritized.slice(0, 2), prioritized.slice(2, 4), prioritized.slice(4, 6), prioritized.slice(6, 8)]
 
-  for(let w=1; w<=4; w++){
-    const slice = priority.slice((w-1)*perWeek, w*perWeek)
-    const objectives = slice.map(t=>{
-      return `${t.subject}: Ensure understanding of '${t.title}' (clarify vocabulary and core concept)`
+  const weeks = Array.from({ length: 4 }, (_, index) => {
+    const topics = weekTopics[index] ?? []
+    const specificTopics = topics.length > 0 ? topics : [{ id: 'general', title: 'language and concept consolidation', subject: 'General', status: 'unknown' as const }]
+
+    const objectives = specificTopics.map((topic) => {
+      if (topic.id === 'general') {
+        return 'Establish a reliable baseline in the language of instruction and build confidence in core classroom routines.'
+      }
+      return `Strengthen understanding of ${topic.title} in ${topic.subject} using familiar examples and simple explanations.`
     })
-    const activities = slice.map(t=>{
-      if(t.status==='unknown') return `Activity: teacher-led demo, use local language examples for ${t.title}`
-      return `Activity: short guided practice and paired work on ${t.title}`
+
+    const activities = specificTopics.map((topic) => {
+      if (topic.id === 'general') {
+        return 'Use bilingual glossaries, visual prompts and short oral check-ins to support confidence in class.'
+      }
+      if (topic.status === 'unknown') {
+        return `Teacher-led explanation, vocabulary support and one guided task for ${topic.title}.`
+      }
+      return `Review and practice ${topic.title} with guided examples and paired discussion.`
     })
-    const assessment = slice.length>0 ? `Checkpoint: quick formative questions on ${slice.map(s=>s.title).join(', ')}` : 'Checkpoint: class participation'
-    weeks.push({ week: w, objectives, activities, assessment })
-  }
+
+    const resources = specificTopics.map((topic) => {
+      if (topic.id === 'general') return 'Bilingual vocabulary cards, concept posters, and oral recap prompts.'
+      return `Local examples, short worksheets, and simple classroom tasks for ${topic.title}.`
+    })
+
+    const subjectSummary = specificTopics.map((topic) => topic.subject).join(', ')
+    const assessment = specificTopics[0]?.id === 'general'
+      ? 'Exit ticket: one oral response plus one written or spoken explanation of the week’s focus.'
+      : `Check for understanding through quick questions on ${specificTopics.map((topic) => topic.title).join(', ')}.`
+
+    const outcome = specificTopics[0]?.id === 'general'
+      ? 'The student should feel more confident in the new classroom environment and able to follow teaching language more reliably.'
+      : `The student should show stronger understanding of ${specificTopics.map((topic) => topic.title).join(', ')} and be ready to build on the next topic.`
+
+    return {
+      week: index + 1,
+      objectives: objectives.length ? objectives : [fallbackWeeks[index]],
+      activities: activities.length ? activities : [fallbackWeeks[index]],
+      resources: resources.length ? resources : ['Visual examples', 'Teacher guided practice', 'Short recap task'],
+      assessment,
+      expectedOutcome: outcome,
+    }
+  })
 
   return {
     id: `plan-${caseData.id}-${Date.now()}`,
     generatedAt: new Date().toISOString(),
-    languageAdaptationNotes: `Preferred language: ${caseData.preferredLanguage}. Provide key vocabulary and bilingual labels where possible.`,
+    languageAdaptationNotes: `Preferred teaching language: ${caseData.preferredLanguage}. Use bilingual explanations, simple sentence frames and vocabulary support in the classroom.`,
     weeks,
-    priorityTopics: priority,
+    priorityTopics: prioritized.slice(0, 8).map((topic) => ({ id: topic.id, title: topic.title, description: `${topic.subject} transition focus` })),
     teacherComments: '',
-    approved: false
+    approved: false,
   }
 }

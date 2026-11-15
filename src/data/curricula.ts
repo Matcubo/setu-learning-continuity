@@ -1,4 +1,109 @@
-import { Curriculum } from '../types'
+import { Board, Curriculum, SchoolStage, StateOption } from '../types'
+
+export const indianStates: StateOption[] = [
+  { id: 'andhra-pradesh', name: 'Andhra Pradesh', regionType: 'state' },
+  { id: 'arunachal-pradesh', name: 'Arunachal Pradesh', regionType: 'state' },
+  { id: 'assam', name: 'Assam', regionType: 'state' },
+  { id: 'bihar', name: 'Bihar', regionType: 'state' },
+  { id: 'chhattisgarh', name: 'Chhattisgarh', regionType: 'state' },
+  { id: 'goa', name: 'Goa', regionType: 'state' },
+  { id: 'gujarat', name: 'Gujarat', regionType: 'state' },
+  { id: 'haryana', name: 'Haryana', regionType: 'state' },
+  { id: 'himachal-pradesh', name: 'Himachal Pradesh', regionType: 'state' },
+  { id: 'jharkhand', name: 'Jharkhand', regionType: 'state' },
+  { id: 'karnataka', name: 'Karnataka', regionType: 'state' },
+  { id: 'kerala', name: 'Kerala', regionType: 'state' },
+  { id: 'madhya-pradesh', name: 'Madhya Pradesh', regionType: 'state' },
+  { id: 'maharashtra', name: 'Maharashtra', regionType: 'state' },
+  { id: 'manipur', name: 'Manipur', regionType: 'state' },
+  { id: 'meghalaya', name: 'Meghalaya', regionType: 'state' },
+  { id: 'mizoram', name: 'Mizoram', regionType: 'state' },
+  { id: 'nagaland', name: 'Nagaland', regionType: 'state' },
+  { id: 'odisha', name: 'Odisha', regionType: 'state' },
+  { id: 'punjab', name: 'Punjab', regionType: 'state' },
+  { id: 'rajasthan', name: 'Rajasthan', regionType: 'state' },
+  { id: 'sikkim', name: 'Sikkim', regionType: 'state' },
+  { id: 'tamil-nadu', name: 'Tamil Nadu', regionType: 'state' },
+  { id: 'telangana', name: 'Telangana', regionType: 'state' },
+  { id: 'tripura', name: 'Tripura', regionType: 'state' },
+  { id: 'uttar-pradesh', name: 'Uttar Pradesh', regionType: 'state' },
+  { id: 'uttarakhand', name: 'Uttarakhand', regionType: 'state' },
+  { id: 'west-bengal', name: 'West Bengal', regionType: 'state' },
+]
+
+export const unionTerritories: StateOption[] = [
+  { id: 'andaman-nicobar-islands', name: 'Andaman and Nicobar Islands', regionType: 'union-territory' },
+  { id: 'chandigarh', name: 'Chandigarh', regionType: 'union-territory' },
+  { id: 'dadra-nagar-haveli-daman-diu', name: 'Dadra and Nagar Haveli and Daman and Diu', regionType: 'union-territory' },
+  { id: 'delhi', name: 'Delhi', regionType: 'union-territory' },
+  { id: 'jammu-kashmir', name: 'Jammu and Kashmir', regionType: 'union-territory' },
+  { id: 'ladakh', name: 'Ladakh', regionType: 'union-territory' },
+  { id: 'lakshadweep', name: 'Lakshadweep', regionType: 'union-territory' },
+  { id: 'puducherry', name: 'Puducherry', regionType: 'union-territory' },
+]
+
+export const allStateOptions: StateOption[] = [...indianStates, ...unionTerritories]
+export const INDIAN_STATES = indianStates
+export const UNION_TERRITORIES = unionTerritories
+export const NATIONAL_STATE_OPTIONS = allStateOptions
+
+export const gradeOptions = Array.from({ length: 12 }, (_, index) => String(index + 1))
+
+export const schoolStageOptions: SchoolStage[] = ['Foundational', 'Preparatory', 'Middle', 'Secondary']
+
+export const boardOptions: Board[] = [
+  { id: 'cbse', name: 'CBSE', type: 'national', region: 'National' },
+  { id: 'cisce', name: 'CISCE (ICSE/ISC)', type: 'national', region: 'National' },
+  { id: 'nios', name: 'NIOS', type: 'national', region: 'National' },
+  { id: 'state-board', name: 'State/UT board', type: 'regional', region: 'Regional' },
+  { id: 'other-board', name: 'Other recognized board', type: 'other', region: 'Regional' },
+  { id: 'teacher-defined', name: 'Teacher-defined curriculum', type: 'teacher-defined', region: 'Custom' },
+]
+
+export const subjectSuggestions = [
+  'Mathematics',
+  'Science',
+  'Environmental Studies',
+  'English',
+  'Hindi',
+  'Regional Language',
+  'Social Science',
+  'Computer Science',
+  'Physics',
+  'Chemistry',
+  'Biology',
+  'Accountancy',
+  'Business Studies',
+  'Economics',
+  'Other / custom subject',
+]
+
+export const languageOptions = [
+  'English',
+  'Hindi',
+  'Assamese',
+  'Bengali',
+  'Bodo',
+  'Dogri',
+  'Gujarati',
+  'Kannada',
+  'Kashmiri',
+  'Konkani',
+  'Maithili',
+  'Malayalam',
+  'Manipuri',
+  'Marathi',
+  'Nepali',
+  'Oriya',
+  'Punjabi',
+  'Sanskrit',
+  'Santali',
+  'Sindhi',
+  'Tamil',
+  'Telugu',
+  'Urdu',
+  'Other',
+]
 
 export const curricula: Curriculum[] = [
   {
