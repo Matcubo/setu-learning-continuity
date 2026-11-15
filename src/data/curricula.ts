@@ -105,12 +105,30 @@ export const languageOptions = [
   'Other',
 ]
 
+export function getCurriculumOptionsForState(state: string, grade: string, board?: string): Curriculum[] {
+  const exact = curricula.filter((curriculum) => {
+    const matchesState = curriculum.state === state
+    const matchesGrade = curriculum.grade === grade
+    const matchesBoard = !board || !curriculum.board || curriculum.board === board
+    return matchesState && matchesGrade && matchesBoard
+  })
+
+  if (exact.length > 0) return exact
+
+  return curricula.filter((curriculum) => curriculum.state === state && curriculum.grade === grade)
+}
+
+export function getDefaultCurriculumForState(state: string, grade: string, board?: string): string {
+  return getCurriculumOptionsForState(state, grade, board)[0]?.id ?? ''
+}
+
 export const curricula: Curriculum[] = [
   {
     id: 'bihar-class6-std',
     title: 'Bihar Class 6 Demonstration Curriculum',
     grade: '6',
     state: 'Bihar',
+    board: 'state-board',
     note: 'Demonstration dataset — illustrative only.',
     subjects: {
       Mathematics: [
@@ -130,6 +148,7 @@ export const curricula: Curriculum[] = [
     title: 'Gujarat Class 6 Demonstration Curriculum',
     grade: '6',
     state: 'Gujarat',
+    board: 'state-board',
     note: 'Demonstration dataset — illustrative only.',
     subjects: {
       Mathematics: [

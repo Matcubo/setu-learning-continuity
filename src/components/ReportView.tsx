@@ -3,8 +3,8 @@ import { TransitionCase } from '../types'
 import { curricula } from '../data/curricula'
 
 export default function ReportView({ caseData }: { caseData: TransitionCase }){
-  const source = curricula.find(c=>c.id===caseData.sourceCurriculumId)
-  const dest = curricula.find(c=>c.id===caseData.destinationCurriculumId)
+  const source = caseData.sourceCurriculumId ? curricula.find(c => c.id === caseData.sourceCurriculumId) : null
+  const dest = caseData.destinationCurriculumId ? curricula.find(c => c.id === caseData.destinationCurriculumId) : null
 
   return (
     <div className="p-6 bg-white text-navy">
@@ -14,8 +14,8 @@ export default function ReportView({ caseData }: { caseData: TransitionCase }){
         <h2 className="font-semibold">Case overview</h2>
         <div className="text-sm">Student: {caseData.studentName}</div>
         <div className="text-sm">Class: {caseData.currentClass}</div>
-        <div className="text-sm">From: {caseData.sourceState} ({source?.title})</div>
-        <div className="text-sm">To: {caseData.destinationState} ({dest?.title})</div>
+        <div className="text-sm">From: {caseData.sourceState} {source ? `(${source.title})` : '(Curriculum mapping pending)'}</div>
+        <div className="text-sm">To: {caseData.destinationState} {dest ? `(${dest.title})` : '(Curriculum mapping pending)'}</div>
       </div>
 
       <div className="mt-4">

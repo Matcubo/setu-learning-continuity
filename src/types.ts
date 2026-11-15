@@ -74,8 +74,8 @@ export type TransitionCase = {
   destinationState: string
   previousLanguage: string
   preferredLanguage: string
-  sourceCurriculumId: string
-  destinationCurriculumId: string
+  sourceCurriculumId?: string | null
+  destinationCurriculumId?: string | null
   academicRecords: AcademicRecord[]
   evidence: EvidenceItem[]
   teacherNotes?: string

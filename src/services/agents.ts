@@ -4,6 +4,8 @@ import { curricula } from '../data/curricula'
 const subjectOrder = ['Mathematics', 'Science'] as const
 
 export function compareCurricula(caseData: TransitionCase): CurriculumComparison[] {
+  if (!caseData.sourceCurriculumId || !caseData.destinationCurriculumId) return []
+
   const source = curricula.find((c) => c.id === caseData.sourceCurriculumId)
   const dest = curricula.find((c) => c.id === caseData.destinationCurriculumId)
   if (!source || !dest) return []
@@ -57,6 +59,53 @@ export function compareCurricula(caseData: TransitionCase): CurriculumComparison
 }
 
 export function generateTransitionPlan(caseData: TransitionCase, comparisons: CurriculumComparison[]) {
+  const fallbackWeeks = [
+    {
+      week: 1,
+      objectives: ['Establish a baseline in the new classroom language and routines.'],
+      activities: ['Use bilingual vocabulary cards, oral warm-ups, and teacher modeling to build confidence.'],
+      resources: ['Visual prompts', 'Bilingual glossary', 'Teacher-led check-in'],
+      assessment: 'Teacher observes speaking confidence and participation during the first week of class.',
+      expectedOutcome: 'The learner feels more comfortable with classroom routines and the language of instruction.',
+    },
+    {
+      week: 2,
+      objectives: ['Identify priority concepts that need reinforcement through the transition period.'],
+      activities: ['Review key concepts with short explanations, examples and paired practice.'],
+      resources: ['Classroom examples', 'Short worksheets', 'Reference notes'],
+      assessment: 'Quick oral or written check for understanding of the week’s priority ideas.',
+      expectedOutcome: 'The learner can explain or demonstrate the key concept with teacher support.',
+    },
+    {
+      week: 3,
+      objectives: ['Reinforce learning with connected practice and guided application.'],
+      activities: ['Practice tasks with scaffolded support, peer discussion, and teacher feedback.'],
+      resources: ['Guided tasks', 'Peer support', 'Teacher feedback notes'],
+      assessment: 'Teacher checks whether the learner can complete a short scaffolded task independently.',
+      expectedOutcome: 'The learner shows consistent participation and improved confidence in applying learning.',
+    },
+    {
+      week: 4,
+      objectives: ['Review progress and prepare the next-step learning plan.'],
+      activities: ['Retest skills, summarise gains and identify any remaining support needs.'],
+      resources: ['Review sheet', 'Teacher notes', 'Family or school handoff summary'],
+      assessment: 'Simple exit check covering language, concept recall and class participation.',
+      expectedOutcome: 'The team has a clear view of the student’s transition readiness and next support actions.',
+    },
+  ]
+
+  if (!comparisons || comparisons.length === 0) {
+    return {
+      id: `plan-${caseData.id}-${Date.now()}`,
+      generatedAt: new Date().toISOString(),
+      languageAdaptationNotes: `Curriculum mapping pending. Preferred teaching language: ${caseData.preferredLanguage}. Use bilingual explanations, visual prompts and teacher-led review until curriculum alignment is confirmed.`,
+      weeks: fallbackWeeks,
+      priorityTopics: [],
+      teacherComments: 'Curriculum mapping pending. Use evidence and classroom observation to guide the bridge plan.',
+      approved: false,
+    }
+  }
+
   const allTopics: Array<{ id: string; title: string; subject: string; status: 'unknown' | 'possible' }> = []
 
   comparisons.forEach((comparison) => {
@@ -75,13 +124,6 @@ export function generateTransitionPlan(caseData: TransitionCase, comparisons: Cu
     if (a.status === b.status) return a.subject.localeCompare(b.subject)
     return a.status === 'unknown' ? -1 : 1
   })
-
-  const fallbackWeeks = [
-    'Baseline listening, reading and numeracy checks to establish the start point.',
-    'Targeted bridge work on priority vocabulary and core concepts.',
-    'Guided practice with repetition, examples and peer correction.',
-    'Review and consolidation with a simple exit assessment and next-step notes.'
-  ]
 
   const weekTopics = [prioritized.slice(0, 2), prioritized.slice(2, 4), prioritized.slice(4, 6), prioritized.slice(6, 8)]
 
@@ -111,7 +153,6 @@ export function generateTransitionPlan(caseData: TransitionCase, comparisons: Cu
       return `Local examples, short worksheets, and simple classroom tasks for ${topic.title}.`
     })
 
-    const subjectSummary = specificTopics.map((topic) => topic.subject).join(', ')
     const assessment = specificTopics[0]?.id === 'general'
       ? 'Exit ticket: one oral response plus one written or spoken explanation of the week’s focus.'
       : `Check for understanding through quick questions on ${specificTopics.map((topic) => topic.title).join(', ')}.`
@@ -122,9 +163,9 @@ export function generateTransitionPlan(caseData: TransitionCase, comparisons: Cu
 
     return {
       week: index + 1,
-      objectives: objectives.length ? objectives : [fallbackWeeks[index]],
-      activities: activities.length ? activities : [fallbackWeeks[index]],
-      resources: resources.length ? resources : ['Visual examples', 'Teacher guided practice', 'Short recap task'],
+      objectives: objectives.length ? objectives : [fallbackWeeks[index].objectives[0]],
+      activities: activities.length ? activities : [fallbackWeeks[index].activities[0]],
+      resources: resources.length ? resources : fallbackWeeks[index].resources,
       assessment,
       expectedOutcome: outcome,
     }

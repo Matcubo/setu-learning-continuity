@@ -3,12 +3,37 @@ import { TransitionCase } from '../types'
 const STORAGE_KEY = 'setu_demo_cases_v1'
 const SETTINGS_KEY = 'setu_demo_settings_v1'
 
+export function normalizeCaseRecord(caseRecord: Partial<TransitionCase>): TransitionCase {
+  const normalized: TransitionCase = {
+    id: caseRecord.id ?? `case-${Date.now()}`,
+    studentName: caseRecord.studentName ?? 'Student',
+    currentClass: caseRecord.currentClass ?? '6',
+    sourceState: caseRecord.sourceState ?? 'Unknown state',
+    destinationState: caseRecord.destinationState ?? 'Unknown state',
+    previousLanguage: caseRecord.previousLanguage ?? 'English',
+    preferredLanguage: caseRecord.preferredLanguage ?? 'English',
+    sourceCurriculumId: caseRecord.sourceCurriculumId ?? null,
+    destinationCurriculumId: caseRecord.destinationCurriculumId ?? null,
+    academicRecords: caseRecord.academicRecords ?? [],
+    evidence: caseRecord.evidence ?? [],
+    teacherNotes: caseRecord.teacherNotes ?? '',
+    status: caseRecord.status ?? 'new',
+    createdAt: caseRecord.createdAt ?? new Date().toISOString(),
+    schoolStage: caseRecord.schoolStage,
+    board: caseRecord.board,
+    grade: caseRecord.grade,
+    plan: caseRecord.plan,
+  }
+
+  return normalized
+}
+
 export function loadCases(): TransitionCase[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw) as TransitionCase[]
-    return Array.isArray(parsed) ? parsed : []
+    return Array.isArray(parsed) ? parsed.map((item) => normalizeCaseRecord(item)) : []
   } catch (error) {
     console.error('Failed loading cases', error)
     return []
@@ -16,7 +41,7 @@ export function loadCases(): TransitionCase[] {
 }
 
 export function saveCases(cases: TransitionCase[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cases))
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(cases.map((item) => normalizeCaseRecord(item))))
 }
 
 export function seedSampleCases(sampleCases: TransitionCase[]) {

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ChevronRight, Plus } from 'lucide-react'
 import { TransitionCase } from '../types'
 import { loadCases, saveCases } from '../services/storage'
-import { allStateOptions, boardOptions, curricula, gradeOptions, languageOptions, schoolStageOptions } from '../data/curricula'
+import { allStateOptions, boardOptions, getCurriculumOptionsForState, getDefaultCurriculumForState, gradeOptions, languageOptions, schoolStageOptions } from '../data/curricula'
 
 const wizardSteps = ['Profile', 'Academic context', 'Curriculum match', 'Review']
 
@@ -41,34 +41,34 @@ export default function NewStudent() {
   )
 
   const sourceCurricula = useMemo(
-    () => curricula.filter((curriculum) => curriculum.state === form.sourceState && curriculum.grade === form.currentClass),
-    [form.sourceState, form.currentClass]
+    () => getCurriculumOptionsForState(form.sourceState, form.currentClass, form.board),
+    [form.sourceState, form.currentClass, form.board]
   )
 
   const destinationCurricula = useMemo(
-    () => curricula.filter((curriculum) => curriculum.state === form.destinationState && curriculum.grade === form.currentClass),
-    [form.destinationState, form.currentClass]
+    () => getCurriculumOptionsForState(form.destinationState, form.currentClass, form.board),
+    [form.destinationState, form.currentClass, form.board]
   )
+
+  function syncCurriculumSelections(next: typeof defaultForm) {
+    const sourceOptions = getCurriculumOptionsForState(next.sourceState, next.currentClass, next.board)
+    const destinationOptions = getCurriculumOptionsForState(next.destinationState, next.currentClass, next.board)
+
+    next.sourceCurriculumId = sourceOptions.some((curriculum) => curriculum.id === next.sourceCurriculumId)
+      ? next.sourceCurriculumId
+      : sourceOptions[0]?.id ?? null
+
+    next.destinationCurriculumId = destinationOptions.some((curriculum) => curriculum.id === next.destinationCurriculumId)
+      ? next.destinationCurriculumId
+      : destinationOptions[0]?.id ?? null
+  }
 
   function updateField(field: string, value: string) {
     setForm((previous) => {
       const next = { ...previous, [field]: value }
 
-      if (field === 'currentClass') {
-        const nextSource = curricula.filter((curriculum) => curriculum.state === previous.sourceState && curriculum.grade === value)
-        const nextDestination = curricula.filter((curriculum) => curriculum.state === previous.destinationState && curriculum.grade === value)
-        next.sourceCurriculumId = nextSource[0]?.id ?? ''
-        next.destinationCurriculumId = nextDestination[0]?.id ?? ''
-      }
-
-      if (field === 'sourceState') {
-        const selected = curricula.filter((curriculum) => curriculum.state === value && curriculum.grade === previous.currentClass)
-        next.sourceCurriculumId = selected[0]?.id ?? ''
-      }
-
-      if (field === 'destinationState') {
-        const selected = curricula.filter((curriculum) => curriculum.state === value && curriculum.grade === previous.currentClass)
-        next.destinationCurriculumId = selected[0]?.id ?? ''
+      if (field === 'currentClass' || field === 'sourceState' || field === 'destinationState' || field === 'board') {
+        syncCurriculumSelections(next)
       }
 
       return next
@@ -94,10 +94,21 @@ export default function NewStudent() {
     if (step === 2) {
       if (!form.sourceState.trim()) nextErrors.push('Source state is required.')
       if (!form.destinationState.trim()) nextErrors.push('Destination state is required.')
-      if (!form.sourceCurriculumId) nextErrors.push('Select a source curriculum.')
-      if (!form.destinationCurriculumId) nextErrors.push('Select a destination curriculum.')
-      if (form.sourceState === form.destinationState && form.sourceCurriculumId === form.destinationCurriculumId) {
-        nextErrors.push('Choose a distinct transfer pathway so the transition comparison is meaningful.')
+
+      const sourceOptions = getCurriculumOptionsForState(form.sourceState, form.currentClass, form.board)
+      const destinationOptions = getCurriculumOptionsForState(form.destinationState, form.currentClass, form.board)
+
+      if (sourceOptions.length > 0 && !form.sourceCurriculumId) {
+        nextErrors.push('Select a source curriculum.')
+      }
+      if (destinationOptions.length > 0 && !form.destinationCurriculumId) {
+        nextErrors.push('Select a destination curriculum.')
+      }
+      if (sourceOptions.length > 0 && !sourceOptions.some((curriculum) => curriculum.id === form.sourceCurriculumId)) {
+        nextErrors.push('The selected source curriculum is not available for the chosen state and class.')
+      }
+      if (destinationOptions.length > 0 && !destinationOptions.some((curriculum) => curriculum.id === form.destinationCurriculumId)) {
+        nextErrors.push('The selected destination curriculum is not available for the chosen state and class.')
       }
     }
 
@@ -124,9 +135,23 @@ export default function NewStudent() {
     if (!form.preferredLanguage.trim()) nextErrors.push('Preferred language is required.')
     if (!form.sourceState.trim()) nextErrors.push('Source state is required.')
     if (!form.destinationState.trim()) nextErrors.push('Destination state is required.')
-    if (!form.sourceCurriculumId) nextErrors.push('Select a source curriculum.')
-    if (!form.destinationCurriculumId) nextErrors.push('Select a destination curriculum.')
     if (!form.evidenceSummary.trim()) nextErrors.push('Add a brief academic evidence summary.')
+
+    const sourceOptions = getCurriculumOptionsForState(form.sourceState, form.currentClass, form.board)
+    const destinationOptions = getCurriculumOptionsForState(form.destinationState, form.currentClass, form.board)
+
+    if (sourceOptions.length > 0 && !form.sourceCurriculumId) {
+      nextErrors.push('Select a source curriculum.')
+    }
+    if (destinationOptions.length > 0 && !form.destinationCurriculumId) {
+      nextErrors.push('Select a destination curriculum.')
+    }
+    if (sourceOptions.length > 0 && !sourceOptions.some((curriculum) => curriculum.id === form.sourceCurriculumId)) {
+      nextErrors.push('The selected source curriculum is not available for the chosen state and class.')
+    }
+    if (destinationOptions.length > 0 && !destinationOptions.some((curriculum) => curriculum.id === form.destinationCurriculumId)) {
+      nextErrors.push('The selected destination curriculum is not available for the chosen state and class.')
+    }
 
     setErrors(nextErrors)
     if (nextErrors.length > 0) return
@@ -141,8 +166,8 @@ export default function NewStudent() {
       destinationState: form.destinationState,
       previousLanguage: form.previousLanguage.trim(),
       preferredLanguage: form.preferredLanguage.trim(),
-      sourceCurriculumId: form.sourceCurriculumId,
-      destinationCurriculumId: form.destinationCurriculumId,
+      sourceCurriculumId: sourceOptions.length > 0 ? form.sourceCurriculumId ?? null : null,
+      destinationCurriculumId: destinationOptions.length > 0 ? form.destinationCurriculumId ?? null : null,
       academicRecords: [
         { subject: 'Mathematics', completedTopicIds: [], observations: form.evidenceSummary.trim() },
         { subject: 'Science', completedTopicIds: [], observations: '' },
@@ -268,7 +293,10 @@ export default function NewStudent() {
             </div>
             <div>
               <label className="label">Source curriculum</label>
-              <select className="select" value={form.sourceCurriculumId} onChange={(event) => updateField('sourceCurriculumId', event.target.value)}>
+              {sourceCurricula.length === 0 ? (
+                <div className="inline-note" style={{ marginBottom: '0.55rem', color: '#8a5b00' }}>Curriculum data unavailable — you can still create this case.</div>
+              ) : null}
+              <select className="select" value={form.sourceCurriculumId ?? ''} onChange={(event) => updateField('sourceCurriculumId', event.target.value || '')}>
                 {sourceCurricula.length === 0 ? (
                   <option value="">No curriculum available</option>
                 ) : (
@@ -280,7 +308,10 @@ export default function NewStudent() {
             </div>
             <div>
               <label className="label">Destination curriculum</label>
-              <select className="select" value={form.destinationCurriculumId} onChange={(event) => updateField('destinationCurriculumId', event.target.value)}>
+              {destinationCurricula.length === 0 ? (
+                <div className="inline-note" style={{ marginBottom: '0.55rem', color: '#8a5b00' }}>Curriculum data unavailable — you can still create this case.</div>
+              ) : null}
+              <select className="select" value={form.destinationCurriculumId ?? ''} onChange={(event) => updateField('destinationCurriculumId', event.target.value || '')}>
                 {destinationCurricula.length === 0 ? (
                   <option value="">No curriculum available</option>
                 ) : (
@@ -298,9 +329,9 @@ export default function NewStudent() {
             <div className="list-card" style={{ gridColumn: '1 / -1' }}>
               <div className="inline-note">Student profile</div>
               <div style={{ fontWeight: 800, fontSize: '1.1rem', marginTop: '0.35rem' }}>{form.studentName || 'Student name pending'}</div>
-              <div style={{ marginTop: '0.5rem' }}>Class {form.currentClass} � {form.schoolStage} � {boardOptions.find((board) => board.id === form.board)?.name}</div>
-              <div style={{ marginTop: '0.35rem' }}>{form.sourceState} ? {form.destinationState}</div>
-              <div style={{ marginTop: '0.35rem' }}>{form.previousLanguage} ? {form.preferredLanguage}</div>
+              <div style={{ marginTop: '0.5rem' }}>Class {form.currentClass} � {form.schoolStage} � {boardOptions.find((board) => board.id === form.board)?.name}</div>
+              <div style={{ marginTop: '0.35rem' }}>{form.sourceState} → {form.destinationState}</div>
+              <div style={{ marginTop: '0.35rem' }}>{form.previousLanguage} → {form.preferredLanguage}</div>
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <label className="label">Teacher notes</label>

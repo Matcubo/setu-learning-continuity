@@ -158,8 +158,9 @@ export default function StudentView() {
     )
   }
 
-  const sourceCurr = curricula.find((item) => item.id === caseData.sourceCurriculumId)
-  const destCurr = curricula.find((item) => item.id === caseData.destinationCurriculumId)
+  const sourceCurr = caseData.sourceCurriculumId ? curricula.find((item) => item.id === caseData.sourceCurriculumId) : null
+  const destCurr = caseData.destinationCurriculumId ? curricula.find((item) => item.id === caseData.destinationCurriculumId) : null
+  const hasCurriculumData = Boolean(caseData.sourceCurriculumId && caseData.destinationCurriculumId)
 
   return (
     <div className="page">
@@ -168,7 +169,7 @@ export default function StudentView() {
           <div className="page-kicker">Student workspace</div>
           <h1 className="page-title">{caseData.studentName}</h1>
           <div className="inline-note">
-            {caseData.sourceState} ? {caseData.destinationState} • Class {caseData.currentClass}
+            {caseData.sourceState} â†’ {caseData.destinationState} â€¢ Class {caseData.currentClass}
           </div>
         </div>
         <div className="cta-row">
@@ -256,7 +257,9 @@ export default function StudentView() {
                 </div>
                 <div className="timeline-step">
                   <div style={{ fontWeight: 700 }}>Curriculum match</div>
-                  <div className="inline-note">{sourceCurr?.title} ? {destCurr?.title}</div>
+                  <div className="inline-note">
+                    {hasCurriculumData ? `${sourceCurr?.title ?? 'Unknown source'} â†’ ${destCurr?.title ?? 'Unknown destination'}` : 'Curriculum mapping pending'}
+                  </div>
                 </div>
                 <div className="timeline-step">
                   <div style={{ fontWeight: 700 }}>Academic evidence</div>
@@ -369,7 +372,7 @@ export default function StudentView() {
               {caseData.evidence.map((entry, index) => (
                 <div key={`${entry.subject}-${entry.topicId}-${index}`} className="timeline-step">
                   <div style={{ fontWeight: 700 }}>{entry.subject}</div>
-                  <div className="inline-note">{entry.topicId} • {entry.evidenceType}</div>
+                  <div className="inline-note">{entry.topicId} ï¿½ {entry.evidenceType}</div>
                   {entry.note && <div className="inline-note" style={{ marginTop: '0.35rem' }}>{entry.note}</div>}
                 </div>
               ))}
@@ -434,7 +437,7 @@ export default function StudentView() {
               ))}
             </div>
           ) : (
-            <div className="empty-state">Comparing curricula...</div>
+            <div className="empty-state">Curriculum mapping pending</div>
           )}
         </section>
       )}
