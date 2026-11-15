@@ -24,11 +24,18 @@ export default function Dashboard() {
   const pendingAssessment = cases.filter((caseItem) => caseItem.status === 'under_review').length
   const plansReady = cases.filter((caseItem) => caseItem.plan && !caseItem.plan.approved).length
   const approved = cases.filter((caseItem) => caseItem.status === 'approved').length
+  const completed = cases.filter((caseItem) => caseItem.plan?.approved).length
 
   const attentionCases = cases.filter((caseItem) => {
     const needsReview = caseItem.evidence.length === 0 || caseItem.status === 'new'
     return needsReview && (caseItem.plan === undefined || !caseItem.plan.approved)
   })
+
+  const regionalSummary = [
+    { label: 'Bihar → Gujarat', value: cases.filter((item) => item.sourceState === 'Bihar' && item.destinationState === 'Gujarat').length },
+    { label: 'Gujarat → Bihar', value: cases.filter((item) => item.sourceState === 'Gujarat' && item.destinationState === 'Bihar').length },
+    { label: 'Same-state transitions', value: cases.filter((item) => item.sourceState === item.destinationState).length },
+  ]
 
   return (
     <div className="page">
@@ -162,9 +169,25 @@ export default function Dashboard() {
               <div style={{ fontWeight: 700 }}>Approvals</div>
               <div className="inline-note">{approved} plans have been approved by teachers.</div>
             </div>
+            <div className="timeline-step">
+              <div style={{ fontWeight: 700 }}>Completed transitions</div>
+              <div className="inline-note">{completed} cases have been closed with approval.</div>
+            </div>
           </div>
         </div>
       </div>
+
+      <section className="section-card card-body" style={{ marginTop: '1.5rem' }}>
+        <h2 className="section-title">Regional movement summary</h2>
+        <div className="form-grid" style={{ marginTop: '1rem' }}>
+          {regionalSummary.map((entry) => (
+            <div className="list-card" key={entry.label}>
+              <div className="inline-note">{entry.label}</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, lineHeight: 1 }}>{entry.value}</div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   )
 }

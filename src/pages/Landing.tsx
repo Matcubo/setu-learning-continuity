@@ -1,18 +1,21 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, BookOpen, BrainCircuit, CheckCircle2, Compass, GraduationCap, LayoutGrid, Map } from 'lucide-react'
+import { ArrowRight, BookOpen, BrainCircuit, CheckCircle2, Compass, Globe2, GraduationCap, LayoutGrid, Map, ShieldCheck } from 'lucide-react'
 
 const steps = [
-  'Create a transition case with school and language context.',
-  'Capture academic evidence and prior learning indicators.',
-  'Compare source and destination curricula to find key gaps.',
-  'Generate and review a focused 4-week bridge plan.'
+  'Capture student profile, board and language context.',
+  'Record academic evidence and prior learning indicators.',
+  'Compare source and destination curricula to find likely gaps.',
+  'Approve a four-week bridge plan built for classroom continuity.'
 ]
 
 const features = [
-  { icon: BrainCircuit, title: 'Evidence-first decisions', text: 'Teacher observations, assessment notes and classroom progress are treated as real signals—not assumptions.' },
-  { icon: Compass, title: 'Curriculum comparison', text: 'SETU maps destination topics against the source curriculum and flags unknown or likely gap areas.' },
-  { icon: LayoutGrid, title: 'Four-week bridge planning', text: 'Plans are designed around priority concepts, language support and practical classroom routines.' },
+  { icon: BrainCircuit, title: 'Evidence-first decisions', text: 'Teacher observations and assessment notes are treated as real signals instead of assumptions.' },
+  { icon: Compass, title: 'Curriculum comparison', text: 'SETU evaluates likely content continuity across states, boards and grade transitions.' },
+  { icon: LayoutGrid, title: 'Four-week bridge plans', text: 'Each plan includes objectives, activities, resources, assessment checkpoints and review notes.' },
+  { icon: ShieldCheck, title: 'Teacher-reviewed workflow', text: 'No unsupported mapping is silently accepted. Missing information prompts review.' },
+  { icon: Globe2, title: 'National Indian coverage', text: 'The project preserves the full state and union territory metadata required for school movement analysis.' },
+  { icon: BookOpen, title: 'Responsive classroom UX', text: 'Designed for teachers working from desktops, tablets or mobile devices while on site.' },
 ]
 
 export default function Landing() {
@@ -20,29 +23,32 @@ export default function Landing() {
     <div className="page">
       <section className="hero-panel hero-grid">
         <div>
-          <div className="page-kicker">Open-source prototype</div>
+          <div className="page-kicker">Open-source educational continuity</div>
           <h1 className="hero-title">A New School.<br />Not a New Beginning.</h1>
           <p className="hero-subtitle">
-            SETU helps teachers support migrant children when they move across Indian states, languages and school systems.
-            It turns scattered evidence into a practical continuity plan for learning and classroom confidence.
+            SETU helps teachers support migrant students who move across Indian states, boards and language contexts.
+            The platform turns incomplete academic records into a focused continuity plan for learning progress and classroom confidence.
           </p>
           <div className="hero-pills">
-            <span className="pill">Curriculum continuity</span>
+            <span className="pill">National coverage</span>
             <span className="pill">Teacher workflow</span>
-            <span className="pill">Language-aware planning</span>
+            <span className="pill">Field-ready planning</span>
           </div>
           <div className="cta-row" style={{ marginTop: '1.5rem' }}>
             <Link to="/students" className="btn btn-primary">
-              Explore demo
+              Explore live demo
               <ArrowRight size={16} />
             </Link>
             <Link to="/dashboard" className="btn btn-secondary">
-              Teacher dashboard
+              Open teacher dashboard
+            </Link>
+            <Link to="/students/new" className="btn btn-ghost">
+              Create a transition
             </Link>
           </div>
         </div>
 
-        <div className="section-card card-body" style={{ background: 'rgba(255,255,255,0.75)' }}>
+        <div className="section-card card-body" style={{ background: 'rgba(255,255,255,0.8)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
             <BookOpen size={18} color="#0a8f8d" />
             <h2 className="section-title" style={{ fontSize: '1.15rem' }}>How SETU works</h2>
@@ -58,14 +64,14 @@ export default function Landing() {
         </div>
       </section>
 
-      <section style={{ marginTop: '1.6rem' }}>
+      <section style={{ marginTop: '1.8rem' }}>
         <div className="feature-grid">
           {features.map(({ icon: Icon, title, text }) => (
             <div key={title} className="section-card feature-card">
               <div className="feature-icon">
                 <Icon size={18} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{title}</h3>
+              <h3 style={{ margin: 0, fontSize: '1.08rem' }}>{title}</h3>
               <p className="hero-subtitle" style={{ marginTop: '0.7rem', fontSize: '0.92rem' }}>{text}</p>
             </div>
           ))}
@@ -81,11 +87,11 @@ export default function Landing() {
         <div className="risk-grid">
           <div className="list-card">
             <div className="inline-note">Student context</div>
-            <div style={{ fontWeight: 700, marginTop: '0.3rem' }}>A Grade 6 child moving from Bihar to Gujarat with Hindi as the previous language and Gujarati as the preferred medium.</div>
+            <div style={{ fontWeight: 700, marginTop: '0.3rem' }}>A Grade 6 learner moving from Bihar to Gujarat, using Hindi as the previous language and Gujarati as the preferred medium.</div>
           </div>
           <div className="list-card">
             <div className="inline-note">What SETU does</div>
-            <div style={{ fontWeight: 700, marginTop: '0.3rem' }}>Compiles prior evidence, identifies missing or weak topic areas, and produces a weekly bridge plan aligned to classroom demands.</div>
+            <div style={{ fontWeight: 700, marginTop: '0.3rem' }}>It compares curriculum coverage, records evidence, and produces a four-week bridge plan that supports both subject continuity and language confidence.</div>
           </div>
         </div>
       </section>
@@ -94,20 +100,20 @@ export default function Landing() {
         <div className="section-card card-body">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <CheckCircle2 size={18} color="#0a8f8d" />
-            <h2 className="section-title">Impact goals</h2>
+            <h2 className="section-title">Teacher and NGO value</h2>
           </div>
           <div className="timeline">
             <div className="timeline-step">
               <div style={{ fontWeight: 700 }}>Reduce transition friction</div>
-              <div className="inline-note">Help teachers quickly understand what a child already knows and what needs support.</div>
+              <div className="inline-note">Teachers can understand learner needs quickly when students move between schools and systems.</div>
             </div>
             <div className="timeline-step">
               <div style={{ fontWeight: 700 }}>Support continuity</div>
-              <div className="inline-note">Keep learning momentum going even when curricula and language contexts change.</div>
+              <div className="inline-note">The plan focuses on priority concepts, language scaffolds and classroom routines that work in real teaching time.</div>
             </div>
             <div className="timeline-step">
-              <div style={{ fontWeight: 700 }}>Focus on evidence</div>
-              <div className="inline-note">Avoid wrongly marking missing information as a student’s lack of understanding.</div>
+              <div style={{ fontWeight: 700 }}>Keep evidence honest</div>
+              <div className="inline-note">Missing information is treated as unknown rather than an automatic knowledge gap.</div>
             </div>
           </div>
         </div>
@@ -115,27 +121,27 @@ export default function Landing() {
         <div className="section-card card-body">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <GraduationCap size={18} color="#0a8f8d" />
-            <h2 className="section-title">Prototype status</h2>
+            <h2 className="section-title">Demo status</h2>
           </div>
           <div className="timeline">
             <div className="timeline-step">
-              <div style={{ fontWeight: 700 }}>Deterministic demo</div>
-              <div className="inline-note">This app uses synthetic school data and offline comparison logic.</div>
+              <div style={{ fontWeight: 700 }}>Deterministic demo workflow</div>
+              <div className="inline-note">The app uses visible, local sample data and a rule-based comparison engine.</div>
             </div>
             <div className="timeline-step">
               <div style={{ fontWeight: 700 }}>Teacher-led review</div>
-              <div className="inline-note">It is designed to support teaching decisions, not replace them.</div>
+              <div className="inline-note">It is designed to support classroom decisions and not replace them.</div>
             </div>
             <div className="timeline-step">
-              <div style={{ fontWeight: 700 }}>Open-source</div>
-              <div className="inline-note">Suitable for study, prototype review, and future extension.</div>
+              <div style={{ fontWeight: 700 }}>Open-source foundation</div>
+              <div className="inline-note">The prototype can be extended with secure data storage and production-grade academic workflow tooling.</div>
             </div>
           </div>
         </div>
       </section>
 
-      <footer style={{ marginTop: '2rem', padding: '1.4rem 0 0.5rem', color: '#526176', textAlign: 'center', fontSize: '0.85rem' }}>
-        SETU • Educational continuity for migrant learners • Synthetic demo data only
+      <footer className="footer-note">
+        SETU • Learning continuity for migrant students • Demo data only • Open-source prototype
       </footer>
     </div>
   )
